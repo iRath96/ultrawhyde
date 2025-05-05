@@ -1,23 +1,24 @@
 #include "FspTimer.h"
 
-constexpr uint8_t PIN_STEP = 2;
+constexpr uint8_t PIN_STEP = 7;
 constexpr uint8_t PIN_DIRECTION = 5;
-constexpr uint8_t PIN_DISABLE = 8;
+constexpr uint8_t PIN_DISABLE = 3;
 
 static inline void digitalWriteFast(uint8_t pin, uint8_t val) __attribute__((always_inline, unused));
 
 struct Executor {
   static constexpr uint32_t FREQUENCY = 65536;
-  static constexpr uint32_t STEPS_PER_UNIT = 8;
+  static constexpr uint32_t STEPS_PER_UNIT = 2; // technically 2 * 32 / 60
 
   // steps in first 32 bits, fractional in remainder
   int64_t currentPos = 0;
   int64_t targetPos = 0;
   int64_t velocity = 0;
 
-  int64_t acceleration = 200*1000;
-  int64_t maxVelocity = uint64_t(4*1000)*1000*1000 / acceleration;
+  int64_t acceleration = 150*1000; // 150k works, 3200k works with sled only
+  int64_t maxVelocity = uint64_t(4*1000)*1000*1000 / acceleration; // 4k works
   int64_t minVelocity = 3;
+  bool prevDir = false;
 
   template<bool Debug = false>
   void step() {
@@ -42,17 +43,27 @@ struct Executor {
     
     const int32_t curSteps = currentPos >> 32;
 
-  if (abs(curSteps - prevSteps) > 1) {
+    if (abs(curSteps - prevSteps) > 1) {
       //digitalWrite(PIN_LED, true);
       currentPos = previousPos;
       return;
     }
 
-    digitalWriteFast(PIN_DIRECTION, curSteps > prevSteps);
-    delayMicroseconds(1);
+    if (curSteps == prevSteps) return;
+
+    const bool dir = curSteps > prevSteps;
+    if (dir != prevDir) {
+      prevDir = dir;
+      digitalWriteFast(PIN_DIRECTION, dir);
+      delayMicroseconds(5);
+      currentPos = previousPos;
+      return;
+    }
+
     digitalWriteFast(PIN_STEP, prevSteps != curSteps);
-    delayMicroseconds(1);
+    delayMicroseconds(3);
     digitalWriteFast(PIN_STEP, false);
+    delayMicroseconds(3);
 
     // if (Serial.available()) {
     //   uint16_t pos;
@@ -110,6 +121,8 @@ void setup() {
   pinMode(PIN_STEP, OUTPUT);
   pinMode(PIN_DISABLE, OUTPUT);
   pinMode(PIN_LED, OUTPUT);
+  digitalWrite(PIN_DISABLE, true);
+  delay(4000);
   digitalWrite(PIN_DISABLE, false);
 
   beginTimer(Executor::FREQUENCY);
