@@ -22,6 +22,9 @@ class SerialPort : ObservableObject {
     let screenWidthPx: Float = 1920
     let screenWidthSteps: Float = 5300
     
+    var reportedPosition: Int16 = 0
+    var targetPosition: Int16 = 0
+    
     init() {
         if setupSerialPort() {
             try! port.openPort()
@@ -50,6 +53,7 @@ class SerialPort : ObservableObject {
     
     private func updatePosition(_ pos: Int16, _ velocity: Int16) async {
         await MainActor.run {
+            reportedPosition = pos
             shift = CGFloat(-(Float(pos) + 0.02 * Float(velocity)) * (screenWidthPx / screenWidthSteps))
         }
     }
@@ -77,7 +81,11 @@ class SerialPort : ObservableObject {
         var position = (cursorX / screenWidthPx - 0.5) * screenWidthSteps
         position = max(position, 0)
         //position = min(position, screenWidthSteps * 2)
-        return Int16(truncatingIfNeeded: Int(position))
+        let newTarget = Int16(truncatingIfNeeded: Int(position))
+        //if abs(Int(newTarget) - Int(reportedPosition)) > 1000 {
+            targetPosition = newTarget
+        //}
+        return targetPosition
     }
     
     private func sendUpdate() {

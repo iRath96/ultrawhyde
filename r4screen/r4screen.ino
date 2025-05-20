@@ -1,21 +1,21 @@
 #include "FspTimer.h"
 
-constexpr uint8_t PIN_STEP = 7;
-constexpr uint8_t PIN_DIRECTION = 5;
-constexpr uint8_t PIN_DISABLE = 3;
+constexpr uint8_t PIN_STEP = 6;
+constexpr uint8_t PIN_DIRECTION = 4;
+constexpr uint8_t PIN_DISABLE = 2;
 
 static inline void digitalWriteFast(uint8_t pin, uint8_t val) __attribute__((always_inline, unused));
 
 struct Executor {
   static constexpr uint32_t FREQUENCY = 65536;
-  static constexpr uint32_t STEPS_PER_UNIT = 2; // technically 2 * 32 / 60
+  static constexpr uint32_t STEPS_PER_UNIT = 2; // technically a bit more?
 
   // steps in first 32 bits, fractional in remainder
   int64_t currentPos = 0;
   int64_t targetPos = 0;
   int64_t velocity = 0;
 
-  int64_t acceleration = 150*1000; // 150k works, 3200k works with sled only
+  int64_t acceleration = 400*1000; // 150k works, 3200k works with sled only
   int64_t maxVelocity = uint64_t(4*1000)*1000*1000 / acceleration; // 4k works
   int64_t minVelocity = 3;
   bool prevDir = false;
@@ -82,7 +82,7 @@ struct Executor {
   }
 
   void setPos(int pos) {
-    if (pos < 0 || pos > 10000) {
+    if (pos < 0 || pos > 9000) { // prev 12000
       // perhaps desync happened?
       //while (Serial.available()) Serial.read();
       return;

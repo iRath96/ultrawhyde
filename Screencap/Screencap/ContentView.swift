@@ -16,7 +16,7 @@ struct ContentView: View {
     private let capturePreview = CapturePreview()
     private let refreshRate = 144
     private let virtualDisplay: Any?
-    private let virtualDisplayWidth = 1920 * 3
+    private let virtualDisplayWidth = 1920 * 7 / 2
     @ObservedObject private var port = SerialPort()
     
     let backgroundQueue = DispatchQueue(label: "com.app.queue",
